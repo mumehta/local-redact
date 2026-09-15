@@ -1,0 +1,4 @@
+Name: <PERSON>
+Email: <EMAIL_ADDRESS>
+Phone: <PHONE_NUMBER>
+password=<PASSWORD>

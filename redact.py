@@ -1,13 +1,16 @@
 from __future__ import annotations
-from PIL import Image
-from presidio_image_redactor import ImageRedactorEngine
 
 import argparse
 import sys
 from pathlib import Path
 
+from PIL import Image
 from presidio_analyzer import AnalyzerEngine
+from presidio_analyzer import RecognizerResult
 from presidio_anonymizer import AnonymizerEngine
+from presidio_image_redactor import ImageAnalyzerEngine, ImageRedactorEngine
+
+from devops_recognizers import register_devops_recognizers
 
 
 TEXT_EXTENSIONS = {
@@ -33,6 +36,13 @@ IMAGE_EXTENSIONS = {
 
 SUPPORTED_EXTENSIONS = TEXT_EXTENSIONS | IMAGE_EXTENSIONS
 
+IDENTIFIER_FALSE_POSITIVE_ENTITIES = {
+    "LOCATION",
+    "PERSON",
+    "ORGANIZATION",
+    "NRP",
+}
+
 
 def get_output_path(input_path: Path) -> Path:
     """
@@ -45,11 +55,53 @@ def get_output_path(input_path: Path) -> Path:
     )
 
 
+def is_identifier_like(value: str) -> bool:
+    return (
+        "_" in value
+        and value.upper() == value
+        and all(char.isalnum() or char == "_" for char in value)
+    )
+
+
+def filter_analyzer_results(
+    text: str,
+    results: list[RecognizerResult],
+) -> list[RecognizerResult]:
+    """
+    Preserve config/env key names that NLP recognizers can mistake for PII.
+
+    Example: AWS_SECRET_ACCESS_KEY should remain readable while its assigned
+    value is replaced by the custom AWS_SECRET_KEY recognizer.
+    """
+
+    filtered_results = []
+
+    for result in results:
+        value = text[result.start:result.end]
+
+        if (
+            result.entity_type in IDENTIFIER_FALSE_POSITIVE_ENTITIES
+            and is_identifier_like(value)
+        ):
+            continue
+
+        filtered_results.append(result)
+
+    return filtered_results
+
+
+def create_analyzer() -> AnalyzerEngine:
+    analyzer = AnalyzerEngine()
+    register_devops_recognizers(analyzer)
+    return analyzer
+
+
 def redact_text(text: str, analyzer: AnalyzerEngine) -> tuple[str, list]:
     results = analyzer.analyze(
         text=text,
         language="en",
     )
+    results = filter_analyzer_results(text, results)
 
     anonymizer = AnonymizerEngine()
 
@@ -60,10 +112,17 @@ def redact_text(text: str, analyzer: AnalyzerEngine) -> tuple[str, list]:
 
     return anonymized.text, results
 
-def redact_image(input_path: Path, output_path: Path) -> None:
+def redact_image(
+    input_path: Path,
+    output_path: Path,
+    analyzer: AnalyzerEngine | None = None,
+) -> None:
     image = Image.open(input_path)
 
-    engine = ImageRedactorEngine()
+    if analyzer is None:
+        analyzer = create_analyzer()
+    image_analyzer = ImageAnalyzerEngine(analyzer_engine=analyzer)
+    engine = ImageRedactorEngine(image_analyzer_engine=image_analyzer)
 
     redacted_image = engine.redact(image)
 
@@ -160,7 +219,7 @@ def main() -> int:
         )
         return 1
 
-    analyzer = AnalyzerEngine()
+    analyzer = create_analyzer()
 
     redacted_text, results = redact_text(text, analyzer)
 

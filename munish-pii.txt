@@ -1,3 +1,0 @@
-munish@gmail.com       → EMAIL_ADDRESS
-0449876890             → PHONE_NUMBER
-Munish Mehta           → PERSON

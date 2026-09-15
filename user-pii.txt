@@ -1,0 +1,4 @@
+Name: Alex Rivera
+Email: alex.rivera@example.com
+Phone: +1 202-555-0147
+password=ExamplePassword123!

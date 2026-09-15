@@ -57,13 +57,13 @@ The current version supports text-based files using:
 - spaCy
 - `en_core_web_lg`
 
-Image redaction dependencies are also installed and the project is being extended to support screenshots using:
+It also supports PNG/JPG/JPEG image redaction using:
 
 - Presidio Image Redactor
 - Tesseract OCR
 - pytesseract
 
-DevOps-specific secret detection is planned.
+DevOps-specific secret detection is implemented with custom recognizers for common infrastructure credentials, API keys, tokens, private keys, and connection strings.
 
 ---
 
@@ -237,7 +237,7 @@ to your Windows `PATH`.
 
 ```powershell
 git clone <repository-url>
-cd presidio
+cd local-redactor
 ```
 
 Replace `<repository-url>` with the actual Git repository URL.
@@ -259,7 +259,7 @@ Activate it:
 Your prompt should now show something similar to:
 
 ```text
-(.venv) PS C:\Users\<username>\tools\presidio>
+(.venv) PS C:\Users\<username>\tools\local-redactor>
 ```
 
 Using a dedicated virtual environment prevents Presidio, spaCy, OpenCV, OCR libraries, and other dependencies from interfering with system-wide Python packages.
@@ -421,60 +421,68 @@ when intentional overwriting is required.
 
 ---
 
-# Global `redact` Command
+# Making `redact` Available Globally on Windows
 
-The project can be exposed as a global Windows command without installing Presidio into the global Python environment.
+The project uses a dedicated Python virtual environment to keep Presidio,
+spaCy, OCR, and the other dependencies isolated. You do not need to activate
+the virtual environment every time you use `redact`.
 
-This allows:
+A small Windows command wrapper exposes the tool to Command Prompt,
+PowerShell, Windows Terminal, and IDE terminals:
 
 ```powershell
-redact example.txt
+redact <input-file>
 ```
 
-from any directory without manually activating `.venv`.
+For example:
 
-## Create a command directory
+```powershell
+redact screenshot.png
+redact application.log
+redact config.yaml
+redact .env
+```
+
+## 1. Create a directory for user commands
 
 ```powershell
 New-Item -ItemType Directory -Force "$HOME\bin"
 ```
 
+This normally creates:
+
+```text
+C:\Users\<username>\bin
+```
+
+## 2. Create the `redact.cmd` wrapper
+
 Create:
 
 ```text
-%USERPROFILE%\bin\redact.cmd
+C:\Users\<username>\bin\redact.cmd
 ```
 
-with:
+with the following contents:
 
 ```bat
 @echo off
-"C:\Users\<username>\tools\presidio\.venv\Scripts\python.exe" "C:\Users\<username>\tools\presidio\redact.py" %*
+"C:\Users\<username>\tools\local-redactor\.venv\Scripts\python.exe" "C:\Users\<username>\tools\local-redactor\redact.py" %*
 ```
 
-Replace `<username>` and the project path as necessary.
+Replace `<username>` with your Windows username. If the project is installed
+somewhere else, change both paths accordingly.
 
----
+The wrapper deliberately invokes Python from the project's `.venv`, so the
+virtual environment does not need to be activated manually.
 
-## Add the command directory to PATH
+## 3. Add the command directory to PATH
 
-Add:
-
-```text
-%USERPROFILE%\bin
-```
-
-to the user `PATH`.
-
-This can also be done from PowerShell:
+Run the following in PowerShell:
 
 ```powershell
 $bin = "$HOME\bin"
-
-$currentPath = [Environment]::GetEnvironmentVariable(
-    "Path",
-    "User"
-)
+$currentPath = [Environment]::GetEnvironmentVariable("Path", "User")
 
 if (($currentPath -split ";") -notcontains $bin) {
     [Environment]::SetEnvironmentVariable(
@@ -485,19 +493,64 @@ if (($currentPath -split ";") -notcontains $bin) {
 }
 ```
 
-Open a new PowerShell window and verify:
+Close and reopen PowerShell, Windows Terminal, Command Prompt, or your IDE
+terminal so it receives the updated `PATH`.
+
+## 4. Verify the command
 
 ```powershell
 Get-Command redact
+redact --help
 ```
 
-Then use:
+`Get-Command` should resolve to:
+
+```text
+C:\Users\<username>\bin\redact.cmd
+```
+
+## 5. Use `redact` from anywhere
+
+You no longer need to navigate to the project directory or activate `.venv`:
 
 ```powershell
-redact C:\path\to\sensitive-file.txt
+cd D:\Pictures\Screenshots
+redact Screenshot.png
 ```
 
-The virtual environment does not need to be manually activated because the wrapper invokes its Python interpreter directly.
+The wrapper passes all arguments directly to `redact.py`, so the normal CLI
+options continue to work:
+
+```powershell
+redact application.log --show-detections
+redact application.log -o sanitized.log
+redact application.log --force
+```
+
+The command flow is:
+
+```text
+redact <input-file>
+        |
+        v
+Windows user PATH
+        |
+        v
+C:\Users\<username>\bin\redact.cmd
+        |
+        v
+local-redactor\.venv\Scripts\python.exe
+        |
+        v
+local-redactor\redact.py
+```
+
+This provides a global-style command for the current Windows user while all
+Python dependencies remain isolated inside the project's virtual environment.
+
+> **Note:** The wrapper contains the absolute path to the `local-redactor`
+> installation. If the project directory is moved or renamed, update both
+> paths in `redact.cmd`.
 
 ---
 
@@ -674,17 +727,15 @@ OAuth credentials
 cloud provider credentials
 ```
 
-Custom recognizers for these patterns are planned.
-
-Until those recognizers are implemented, manually inspect infrastructure-related output before sharing it publicly.
+Custom recognizers cover many of these patterns, but manually inspect infrastructure-related output before sharing it publicly.
 
 ---
 
 # Image Redaction
 
-Image redaction is under development.
+Image redaction is available for screenshots and other image files.
 
-The intended interface is:
+Use:
 
 ```powershell
 redact screenshot.png
@@ -696,7 +747,7 @@ producing:
 screenshot.redacted.png
 ```
 
-The pipeline will use:
+The pipeline uses:
 
 ```text
 Image
@@ -717,9 +768,9 @@ Opaque pixel replacement
 Redacted image
 ```
 
-The implementation should use opaque redaction rather than visual blur so that sensitive pixels are actually replaced.
+The implementation uses opaque redaction rather than visual blur so that sensitive pixels are actually replaced.
 
-Planned image formats:
+Supported image formats:
 
 ```text
 .png
@@ -733,24 +784,16 @@ Planned image formats:
 
 Future development includes:
 
-- PNG/JPG/JPEG redaction
 - Automatic text vs image detection
-- DevOps-specific secret recognizers
-- API key detection
-- JWT detection
 - OAuth token detection
-- AWS/GCP/Azure credential detection
-- GitHub/GitLab token detection
-- Tailscale key detection
-- Private key detection
-- Connection-string detection
+- Broader GCP/Azure credential detection
+- GitLab token detection
 - Kubernetes secret detection
 - Batch directory redaction
 - Dry-run mode
 - Configurable entity selection
 - Confidence thresholds
 - Windows Explorer "Redact before sharing" integration
-- Automated tests using synthetic sensitive data
 - Native Python CLI packaging
 
 ---
@@ -851,11 +894,11 @@ The recommended implementation order is:
         |
 3. Tesseract installation             DONE
         |
-4. Image redaction
+4. Image redaction                   DONE
         |
-5. DevOps secret recognizers
+5. DevOps secret recognizers         DONE
         |
-6. Automated synthetic tests
+6. Automated synthetic tests         STARTED
         |
 7. Batch redaction
         |

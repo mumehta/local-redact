@@ -1,1 +1,44 @@
-.venv
+# Python environments
+.venv/
+venv/
+env/
+
+# Python caches and tooling
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Build and packaging output
+build/
+dist/
+*.egg-info/
+
+# Generated redaction output
+*.redacted.*
+!user-pii.redacted.txt
+
+# Local inputs which may contain sensitive data
+inputs/
+samples/private/
+
+# Local secrets and environment configuration
+.env
+.env.*
+!.env.example
+!.env.template
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Editor and operating-system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
