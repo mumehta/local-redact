@@ -1,4 +1,6 @@
 from __future__ import annotations
+from PIL import Image
+from presidio_image_redactor import ImageRedactorEngine
 
 import argparse
 import sys
@@ -8,7 +10,7 @@ from presidio_analyzer import AnalyzerEngine
 from presidio_anonymizer import AnonymizerEngine
 
 
-SUPPORTED_EXTENSIONS = {
+TEXT_EXTENSIONS = {
     ".txt",
     ".log",
     ".json",
@@ -22,6 +24,14 @@ SUPPORTED_EXTENSIONS = {
     ".csv",
     ".md",
 }
+
+IMAGE_EXTENSIONS = {
+    ".png",
+    ".jpg",
+    ".jpeg",
+}
+
+SUPPORTED_EXTENSIONS = TEXT_EXTENSIONS | IMAGE_EXTENSIONS
 
 
 def get_output_path(input_path: Path) -> Path:
@@ -49,6 +59,19 @@ def redact_text(text: str, analyzer: AnalyzerEngine) -> tuple[str, list]:
     )
 
     return anonymized.text, results
+
+def redact_image(input_path: Path, output_path: Path) -> None:
+    image = Image.open(input_path)
+
+    engine = ImageRedactorEngine()
+
+    redacted_image = engine.redact(image)
+
+    # JPEG cannot be saved as RGBA.
+    if output_path.suffix.lower() in {".jpg", ".jpeg"}:
+        redacted_image = redacted_image.convert("RGB")
+
+    redacted_image.save(output_path)
 
 
 def main() -> int:
@@ -111,6 +134,23 @@ def main() -> int:
         )
         return 1
 
+    extension = input_path.suffix.lower()
+
+    if extension in IMAGE_EXTENSIONS:
+        try:
+            redact_image(input_path, output_path)
+        except Exception as exc:
+            print(f"ERROR: Image redaction failed: {exc}", file=sys.stderr)
+            return 1
+
+        print(f"Redacted: {input_path}")
+        print(f"Output:   {output_path}")
+        print("Type:     Image")
+
+        return 0
+
+
+    # Text processing
     try:
         text = input_path.read_text(encoding="utf-8")
     except UnicodeDecodeError:
@@ -142,7 +182,6 @@ def main() -> int:
             )
 
     return 0
-
 
 if __name__ == "__main__":
     raise SystemExit(main())
