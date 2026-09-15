@@ -841,6 +841,15 @@ presidio-redactor/
 
 # Git Safety
 
+> **Test-data notice:** All names, email addresses, phone numbers, passwords,
+> tokens, credentials, connection strings, and other sensitive-looking values
+> committed in `tests/fixtures/`, `user-pii.txt`, and
+> `user-pii.redacted.txt` are synthetic dummy data. They are deliberately
+> shaped like real PII and secrets to exercise the redaction pipeline. They
+> are not valid credentials and are not associated with real accounts.
+> Automated secret scanners may still flag these fixtures because their
+> formats intentionally resemble real credentials.
+
 Never commit real sensitive data simply to test the redactor.
 
 Avoid committing:
