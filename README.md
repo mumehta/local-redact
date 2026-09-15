@@ -111,7 +111,7 @@ Presidio Anonymizer
 munish-pii.redacted.txt
 ```
 
-## Planned Image Redaction
+## Image Redaction
 
 ```text
 Screenshot
@@ -651,6 +651,24 @@ python -m pip install -r requirements-lock.txt
 
 ---
 
+# Development And Tests
+
+Install the development dependencies:
+
+```powershell
+python -m pip install -r requirements-dev.txt
+```
+
+Run the automated tests:
+
+```powershell
+python -m pytest
+```
+
+The tests use synthetic PII and credential-shaped fixtures only.
+
+---
+
 # System Dependencies
 
 Some dependencies cannot be represented in `requirements.txt`.
@@ -784,11 +802,11 @@ Supported image formats:
 
 Future development includes:
 
-- Automatic text vs image detection
-- OAuth token detection
+- Content-based file type detection
+- Broader OAuth token detection
 - Broader GCP/Azure credential detection
 - GitLab token detection
-- Kubernetes secret detection
+- Format-aware Kubernetes Secret parsing
 - Batch directory redaction
 - Dry-run mode
 - Configurable entity selection
@@ -803,14 +821,27 @@ Future development includes:
 Current structure:
 
 ```text
-local-presidio/
+local-redactor/
 |
 +-- .gitignore
 +-- README.md
++-- devops_recognizers.py
 +-- requirements.txt
 +-- requirements-lock.txt
++-- requirements-dev.txt
 +-- redact.py
++-- user-pii.txt                 # synthetic local example
++-- user-pii.redacted.txt        # synthetic redacted example
 |
++-- docs/
++|   +-- local-redactor-hugo-article.md
++|
++-- tests/
++|   +-- fixtures/
++|   +-- test_devops_recognizers.py
++|   +-- test_image_redaction.py
++|   +-- test_text_redaction.py
++|
 +-- .venv/                  # ignored by Git
 ```
 
@@ -907,7 +938,7 @@ The recommended implementation order is:
         |
 5. DevOps secret recognizers         DONE
         |
-6. Automated synthetic tests         STARTED
+6. Automated synthetic tests         DONE
         |
 7. Batch redaction
         |
