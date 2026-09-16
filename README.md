@@ -718,7 +718,13 @@ and add `C:\Users\<username>\bin` to your user `PATH`.
 ```text
 local-redact/
 |
++-- .github/
+|   +-- workflows/
+|       +-- ci.yml               # cross-OS test matrix
+|       +-- release.yml          # build + PyPI trusted publishing on v* tags
+|
 +-- .gitignore
++-- LICENSE                      # MIT
 +-- README.md
 +-- pyproject.toml               # packaging, deps, `redact` entry point
 +-- requirements.txt
@@ -764,7 +770,6 @@ Future development includes:
 - Configurable entity selection
 - Confidence thresholds
 - Windows Explorer "Redact before sharing" integration
-- Publishing to PyPI
 
 ---
 
@@ -789,9 +794,11 @@ The recommended implementation order is:
         |
 8. Python CLI packaging               DONE
         |
-9. Batch redaction
+9. CI + PyPI release automation       DONE
         |
-10. Windows Explorer integration
+10. Batch redaction
+        |
+11. Windows Explorer integration
 ```
 
 ---
@@ -835,17 +842,64 @@ The primary design principle of this project is:
 
 > Sensitive source material should remain local wherever possible.
 
-Unlike an online redaction service, the local pipeline processes source files on the user's machine.
+## No data leaves your machine at runtime
 
-However, users remain responsible for validating that redaction was successful before publishing or transmitting the resulting files.
+Unlike an online redaction service, the entire redaction pipeline runs locally.
+When you invoke `redact`, your files are read, analyzed, and written on your own
+machine. **No file content, detected entities, or redaction results are
+transmitted over the network.** The tool does not collect telemetry, usage data,
+or analytics of any kind.
+
+## Network activity during setup only
+
+Network access occurs only during initial installation and model download:
+
+- `pip install` / `pipx install` fetches Python packages from PyPI.
+- `python -m spacy download en_core_web_lg` downloads the NLP model (~400 MB)
+  from GitHub/spaCy's CDN.
+
+Once installed, the tool operates fully offline. If your environment requires
+air-gapped operation, you can pre-download the wheel and spaCy model, transfer
+them via removable media, and install from local files.
+
+## Third-party dependencies
+
+This project relies on open-source libraries (Microsoft Presidio, spaCy,
+Pillow, pytesseract, and their transitive dependencies). Their privacy
+behavior is governed by their respective projects. None of these libraries are
+known to transmit user data at runtime, but this project does not control their
+code.
+
+## Image redaction uses opaque pixel replacement
+
+Sensitive regions in images are overwritten with solid-colored boxes, not blurred.
+This means the original pixel data is destroyed in the output file and cannot be
+recovered, unlike Gaussian blur which can sometimes be reversed.
+
+## Redacted output still requires review
+
+Redaction removes detected sensitive *values*, but surrounding context may still
+reveal operational information (system names, endpoints, usernames, timestamps,
+log structure). Users remain responsible for reviewing redacted output before
+publishing or transmitting it, particularly for high-sensitivity material.
 
 ---
 
 # License
 
-Choose and add an appropriate open-source license before distributing the project publicly.
+This project is licensed under the [MIT License](LICENSE).
 
-For a small open-source utility of this type, the MIT License is one possible option.
+The key dependencies and their licenses:
+
+| Dependency | License |
+| --- | --- |
+| Microsoft Presidio | MIT |
+| spaCy | MIT |
+| Tesseract OCR | Apache 2.0 |
+| pytesseract | Apache 2.0 |
+| Pillow | HPND (MIT-like) |
+
+All dependency licenses are compatible with the MIT License.
 
 ---
 
