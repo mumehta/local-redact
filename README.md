@@ -19,6 +19,55 @@ The project is designed to run locally so that the original sensitive data does 
 
 It runs on **Windows, macOS, and Linux**. The tool installs as a proper Python package with a `redact` console command, so the same command works identically on every operating system. Only the system prerequisites (Tesseract OCR, the spaCy model) differ per OS.
 
+---
+
+# Quick Start
+
+### 1. Install Tesseract OCR (required for image redaction)
+
+| OS | Command |
+|---|---|
+| macOS | `brew install tesseract` |
+| Ubuntu / Debian | `sudo apt install -y tesseract-ocr` |
+| Windows | `winget install -e --id tesseract-ocr.tesseract` |
+
+Skip this step if you only need text redaction.
+
+### 2. Install Local Redact
+
+```bash
+pip install local-redactor
+```
+
+### 3. Download the spaCy language model
+
+```bash
+python -m spacy download en_core_web_lg
+```
+
+This is a one-time ~400 MB download that provides the NLP engine for detecting
+names, emails, phone numbers, and other PII.
+
+### 4. Redact
+
+```bash
+redact sensitive-file.txt          # -> sensitive-file.redacted.txt
+redact screenshot.png              # -> screenshot.redacted.png
+```
+
+The original file is never modified. Common options:
+
+```bash
+redact file.log --show-detections  # see what was detected and confidence scores
+redact file.log -o clean.log       # custom output filename
+redact file.log --force            # overwrite existing output
+```
+
+See [Prerequisites](#prerequisites) and [Installation](#installation) below for
+virtual-environment setup, per-OS details, and development instructions.
+
+---
+
 ## Image Redaction Example
 
 | Before | After |
