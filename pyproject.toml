@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "local-redactor"
-version = "0.3.1"
+version = "0.3.2"
 description = "Local command-line tool to redact PII and DevOps secrets from text files and images, built on Microsoft Presidio."
 readme = "README.md"
 requires-python = ">=3.9"
