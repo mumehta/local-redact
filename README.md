@@ -677,6 +677,9 @@ python -m spacy download en_core_web_lg
 
 # Security Considerations
 
+For a concise security and approval-oriented overview, see
+[Security Model And Trust Boundaries](SECURITY.md).
+
 ## Automated redaction is not a security guarantee
 
 The output of this tool should **not automatically be assumed safe for public disclosure**.
