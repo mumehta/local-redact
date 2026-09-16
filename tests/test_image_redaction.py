@@ -2,7 +2,8 @@ from pathlib import Path
 
 from PIL import Image
 
-import redact
+from presidio_redactor import image as redact
+from presidio_redactor.text import get_output_path
 
 
 def test_redact_image_converts_jpeg_output_to_rgb(tmp_path, monkeypatch):
@@ -25,6 +26,7 @@ def test_redact_image_converts_jpeg_output_to_rgb(tmp_path, monkeypatch):
         def redact(self, image):
             return image.copy()
 
+    monkeypatch.setattr(redact, "ensure_tesseract_available", lambda: None)
     monkeypatch.setattr(redact, "create_analyzer", lambda: configured_analyzer)
     monkeypatch.setattr(redact, "ImageAnalyzerEngine", FakeImageAnalyzerEngine)
     monkeypatch.setattr(redact, "ImageRedactorEngine", FakeImageRedactorEngine)
@@ -87,6 +89,6 @@ def test_image_analyzer_detects_devops_secret_from_ocr_text():
 
 
 def test_get_output_path_inserts_redacted_before_extension():
-    assert redact.get_output_path(Path("docker-compose.yml")) == Path(
+    assert get_output_path(Path("docker-compose.yml")) == Path(
         "docker-compose.redacted.yml"
     )

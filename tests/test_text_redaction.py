@@ -1,6 +1,6 @@
 from presidio_analyzer import RecognizerResult
 
-from redact import filter_analyzer_results, is_identifier_like
+from presidio_redactor.text import filter_analyzer_results, is_identifier_like
 
 
 def test_identifier_like_detection():

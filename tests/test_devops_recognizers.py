@@ -1,6 +1,6 @@
 from presidio_anonymizer import AnonymizerEngine
 
-from devops_recognizers import get_devops_recognizers
+from presidio_redactor.recognizers import get_devops_recognizers
 
 
 def analyze_with_devops_recognizers(text: str):
