@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "presidio-redactor"
-version = "0.1.0"
+version = "0.2.0"
 description = "Local command-line tool to redact PII and DevOps secrets from text files and images, built on Microsoft Presidio."
 readme = "README.md"
 requires-python = ">=3.9"
@@ -31,15 +31,15 @@ dev = [
     "pytest==8.4.2",
 ]
 
+[project.scripts]
+redact = "presidio_redactor.cli:main"
+
 [project.urls]
 Homepage = "https://github.com/mumehta/local-redact"
 Repository = "https://github.com/mumehta/local-redact"
 
-# NOTE: This stage wraps the existing top-level modules as-is (no file moves).
-# A later stage migrates these into a src/presidio_redactor/ package and adds
-# the `redact` console entry point.
-[tool.setuptools]
-py-modules = ["redact", "devops_recognizers"]
+[tool.setuptools.packages.find]
+where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
