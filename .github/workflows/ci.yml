@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Cancel superseded runs on the same ref to save CI minutes.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # --- System dependency: Tesseract OCR (per-OS) ---------------------
+      # Installing here also validates the per-OS instructions in the README.
+      - name: Install Tesseract (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tesseract-ocr
+
+      - name: Install Tesseract (macOS)
+        if: runner.os == 'macOS'
+        run: brew install tesseract
+
+      - name: Install Tesseract (Windows)
+        if: runner.os == 'Windows'
+        run: choco install --no-progress -y tesseract
+
+      # Chocolatey installs Tesseract outside the default PATH on the runner;
+      # point the redactor at it explicitly via TESSERACT_CMD. The tests use
+      # fakes and do not require this, but it keeps the environment honest.
+      - name: Expose Tesseract on Windows
+        if: runner.os == 'Windows'
+        shell: bash
+        run: echo "TESSERACT_CMD=C:\\Program Files\\Tesseract-OCR\\tesseract.exe" >> "$GITHUB_ENV"
+
+      # --- Cache the pip download cache so the ~400MB spaCy model wheel is
+      #     downloaded at most once per OS and reused across runs. -----------
+      - name: Cache pip downloads
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.os == 'Windows' && '~\AppData\Local\pip\Cache' || '~/.cache/pip' }}
+          key: pip-${{ runner.os }}-py312-${{ hashFiles('pyproject.toml') }}
+          restore-keys: |
+            pip-${{ runner.os }}-py312-
+
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
+
+      - name: Install package with dev dependencies
+        run: python -m pip install -e ".[dev]"
+
+      # Downloads from the pip cache after the first run (fast on cache hit).
+      - name: Download spaCy model
+        run: python -m spacy download en_core_web_lg
+
+      - name: Run tests
+        run: python -m pytest -q
