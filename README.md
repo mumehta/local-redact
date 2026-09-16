@@ -4,7 +4,7 @@ A local command-line redaction tool that removes personally identifiable informa
 
 The goal of this project is to provide a simple command such as:
 
-```powershell
+```bash
 redact sensitive-file.txt
 redact screenshot.png
 ```
@@ -12,6 +12,8 @@ redact screenshot.png
 which creates sanitized copies that are safer to share in public forums, GitHub issues, support tickets, AI tools, documentation, and other external systems.
 
 The project is designed to run locally so that the original sensitive data does not need to be uploaded to a third-party redaction service.
+
+It runs on **Windows, macOS, and Linux**. The tool installs as a proper Python package with a `redact` console command, so the same command works identically on every operating system. Only the system prerequisites (Tesseract OCR, the spaCy model) differ per OS.
 
 ## Image Redaction Example
 
@@ -78,6 +80,8 @@ It also supports PNG/JPG/JPEG image redaction using:
 
 DevOps-specific secret detection is implemented with custom recognizers for common infrastructure credentials, API keys, tokens, private keys, and connection strings.
 
+The project ships as an installable Python package (`presidio-redactor`) with a `redact` console entry point.
+
 ---
 
 # Architecture
@@ -107,7 +111,7 @@ Redacted output file
 Example:
 
 ```text
-munish-pii.txt
+user-pii.txt
         |
         v
 Presidio Analyzer
@@ -121,7 +125,7 @@ PHONE_NUMBER
 Presidio Anonymizer
         |
         v
-munish-pii.redacted.txt
+user-pii.redacted.txt
 ```
 
 ## Image Redaction
@@ -153,37 +157,40 @@ screenshot.redacted.png
 
 ---
 
-# Requirements
+# Prerequisites
 
-## Operating System
+Two things are required on every operating system and **cannot** be installed by
+`pip`, so they are installed per-OS below:
 
-Development is currently being performed on Windows.
+1. **Python 3.9 or newer**
+2. **Tesseract OCR** (only needed for image redaction)
 
-The Python portion should also be portable to Linux and macOS, although installation steps may differ.
+A third requirement, the spaCy language model, is installed with the same
+command on every OS after the Python package is installed (see
+[Installation](#installation)).
 
-## Python
+Pick your operating system:
 
-Python 3 is required.
+- [Windows prerequisites](#windows-prerequisites)
+- [macOS prerequisites](#macos-prerequisites)
+- [Linux (Ubuntu/Debian) prerequisites](#linux-ubuntudebian-prerequisites)
 
-Check your installation:
+---
+
+## Windows prerequisites
+
+### Python
+
+Install from [python.org](https://www.python.org/downloads/) or with winget:
 
 ```powershell
+winget install -e --id Python.Python.3.12
 python --version
 ```
 
-## Tesseract OCR
-
-Tesseract is required for image redaction.
+### Tesseract OCR
 
 Tesseract is a native system dependency and is **not installed by pip**.
-
-On Windows:
-
-```powershell
-winget search tesseract
-```
-
-Install:
 
 ```powershell
 winget install -e --id tesseract-ocr.tesseract
@@ -199,183 +206,220 @@ Verify:
 
 ```powershell
 tesseract --version
-```
-
-and:
-
-```powershell
 tesseract --list-langs
 ```
 
-At minimum, the English language model should be available:
+At minimum, the English language model (`eng`) should be listed.
 
-```text
-eng
-```
-
-If Windows cannot find `tesseract`, verify the executable exists:
+If Windows cannot find `tesseract` after installation, either add
+`C:\Program Files\Tesseract-OCR` to your `PATH`, or point the redactor at the
+binary directly with the `TESSERACT_CMD` environment variable:
 
 ```powershell
-Get-ChildItem "C:\Program Files" `
-    -Filter tesseract.exe `
-    -Recurse `
-    -ErrorAction SilentlyContinue
+$env:TESSERACT_CMD = "C:\Program Files\Tesseract-OCR\tesseract.exe"
 ```
 
-Test it directly:
+---
 
-```powershell
-& "C:\Program Files\Tesseract-OCR\tesseract.exe" --version
+## macOS prerequisites
+
+### Python
+
+macOS ships with Python 3, but a dedicated install via
+[Homebrew](https://brew.sh/) is recommended:
+
+```bash
+brew install python
+python3 --version
 ```
 
-If this works but:
+### Tesseract OCR
 
-```powershell
+```bash
+brew install tesseract
 tesseract --version
+tesseract --list-langs
 ```
 
-does not, add:
+Homebrew places `tesseract` on your `PATH` automatically. If you installed it
+somewhere non-standard, point the redactor at it explicitly:
 
-```text
-C:\Program Files\Tesseract-OCR
+```bash
+export TESSERACT_CMD="/opt/homebrew/bin/tesseract"
 ```
 
-to your Windows `PATH`.
+---
+
+## Linux (Ubuntu/Debian) prerequisites
+
+### Python
+
+```bash
+sudo apt update
+sudo apt install -y python3 python3-venv python3-pip
+python3 --version
+```
+
+### Tesseract OCR
+
+```bash
+sudo apt install -y tesseract-ocr
+tesseract --version
+tesseract --list-langs
+```
+
+For other distributions, use the equivalent package
+(for example `sudo dnf install tesseract` on Fedora). If `tesseract` is not on
+your `PATH`, set `TESSERACT_CMD` to its full path:
+
+```bash
+export TESSERACT_CMD="/usr/bin/tesseract"
+```
 
 ---
 
 # Installation
 
+The steps below are the same on every OS once the
+[prerequisites](#prerequisites) are in place. Windows users can run the same
+commands in PowerShell (adjusting only the virtual-environment activation line,
+noted below).
+
 ## 1. Clone the repository
 
-```powershell
-git clone https://github.com/mumehta/local-redact.git local-redactor
-cd local-redactor
+```bash
+git clone https://github.com/mumehta/local-redact.git
+cd local-redact
 ```
 
----
+## 2. Create and activate a virtual environment
 
-## 2. Create a virtual environment
+A dedicated virtual environment keeps Presidio, spaCy, OpenCV, OCR libraries,
+and their dependencies isolated from system-wide Python packages.
 
-```powershell
-python -m venv .venv
+Create it:
+
+```bash
+python3 -m venv .venv
 ```
 
 Activate it:
 
+**macOS / Linux**
+
+```bash
+source .venv/bin/activate
+```
+
+**Windows (PowerShell)**
+
 ```powershell
 .\.venv\Scripts\Activate.ps1
 ```
 
-Your prompt should now show something similar to:
-
-```text
-(.venv) PS C:\Users\<username>\tools\local-redactor>
-```
-
-Using a dedicated virtual environment prevents Presidio, spaCy, OpenCV, OCR libraries, and other dependencies from interfering with system-wide Python packages.
-
----
+Your prompt should now be prefixed with `(.venv)`.
 
 ## 3. Upgrade pip
 
-```powershell
+```bash
 python -m pip install --upgrade pip
 ```
 
----
+## 4. Install the package
 
-## 4. Install Python dependencies
+Install the project (and its pinned dependencies) into the virtual environment.
+This also creates the `redact` command.
 
-```powershell
-python -m pip install -r requirements.txt
+```bash
+python -m pip install .
 ```
 
-The primary dependencies are:
+For development (editable install plus test dependencies):
 
-```text
-presidio-analyzer==2.2.364
-presidio-anonymizer==2.2.364
-presidio-image-redactor==0.0.60
+```bash
+python -m pip install -e ".[dev]"
 ```
-
----
 
 ## 5. Install the spaCy English model
 
-```powershell
+This command is identical on every OS:
+
+```bash
 python -m spacy download en_core_web_lg
 ```
 
-Verify the spaCy installation:
+Verify:
 
-```powershell
+```bash
 python -m spacy validate
 ```
 
-A working installation should show `en_core_web_lg` as compatible.
+`en_core_web_lg` should be listed as compatible.
 
-For example:
+## 6. Verify the installation
 
-```text
-NAME             SPACY            VERSION
-en_core_web_lg   >=3.8.0,<3.9.0   3.8.0   OK
+```bash
+redact --help
 ```
 
----
+You should see the CLI usage. Optionally verify the underlying engines:
 
-# Verify Presidio
-
-Test the analyzer:
-
-```powershell
-python -c "from presidio_analyzer import AnalyzerEngine; a=AnalyzerEngine(); print(a.analyze(text='My name is John Smith and my email is john@example.com and my phone is +61 412 345 678', language='en'))"
-```
-
-Expected detections include:
-
-```text
-EMAIL_ADDRESS
-PERSON
-PHONE_NUMBER
-```
-
-Presidio may also return overlapping detections from different recognizers. This is normal.
-
----
-
-# Verify Tesseract Integration
-
-Ensure Tesseract works directly:
-
-```powershell
-tesseract --version
-```
-
-Then activate the project's virtual environment:
-
-```powershell
-.\.venv\Scripts\Activate.ps1
-```
-
-Verify that Python can invoke Tesseract:
-
-```powershell
+```bash
+python -c "from presidio_analyzer import AnalyzerEngine; a=AnalyzerEngine(); print([r.entity_type for r in a.analyze(text='My name is John Smith and my email is john@example.com', language='en')])"
 python -c "import pytesseract; print(pytesseract.get_tesseract_version())"
 ```
 
-If this returns the installed Tesseract version, the Python-to-Tesseract integration is working.
+---
+
+# The `redact` Command
+
+Installing the package with `pip install .` (or `pip install -e .`) creates a
+real `redact` executable on every operating system:
+
+- On **Windows**, pip generates `redact.exe` in the environment's `Scripts`
+  directory.
+- On **macOS/Linux**, pip generates a `redact` executable in the environment's
+  `bin` directory.
+
+No hand-written wrapper script is required. This replaces the older Windows-only
+`redact.cmd` approach (see [Legacy Windows wrapper](#legacy-windows-wrapper) if
+you still want a global command that does not require activating the virtual
+environment).
+
+## Install globally with pipx (recommended for everyday use)
+
+[pipx](https://pipx.pypa.io/) installs the command into an isolated environment
+and puts `redact` on your `PATH`, so you never have to activate a virtual
+environment to use it. This works the same on Windows, macOS, and Linux.
+
+```bash
+pipx install .
+```
+
+Then, from anywhere:
+
+```bash
+redact application.log
+redact screenshot.png
+```
+
+You still need Tesseract and the spaCy model installed as described in
+[Prerequisites](#prerequisites) and [Installation](#installation). When using
+pipx, install the spaCy model into the pipx environment:
+
+```bash
+pipx runpip presidio-redactor install
+python -m spacy download en_core_web_lg   # into the active/managed environment
+```
 
 ---
 
 # Using the Redactor
 
-## Run directly with Python
+With the virtual environment activated (or after `pipx install`), run:
 
-While the virtual environment is activated:
-
-```powershell
-python .\redact.py .\example.txt
+```bash
+redact ./example.txt
 ```
 
 The tool creates:
@@ -386,14 +430,10 @@ example.redacted.txt
 
 The original file is left unchanged.
 
----
-
 ## Display detected entities
 
-Use:
-
-```powershell
-python .\redact.py .\example.txt --show-detections
+```bash
+redact ./example.txt --show-detections
 ```
 
 Example:
@@ -408,160 +448,38 @@ PHONE_NUMBER         score=0.75 position=71:86
 
 This is useful when testing detection accuracy.
 
----
-
 ## Specify an output file
 
-```powershell
-python .\redact.py .\example.txt -o .\safe-to-share.txt
+```bash
+redact ./example.txt -o ./safe-to-share.txt
 ```
-
----
 
 ## Overwrite an existing redacted file
 
-By default, the tool will not overwrite an existing output file.
+By default, the tool will not overwrite an existing output file. Use `--force`
+when intentional overwriting is required:
 
-Use:
-
-```powershell
-python .\redact.py .\example.txt --force
+```bash
+redact ./example.txt --force
 ```
 
-when intentional overwriting is required.
+## Image redaction
 
----
-
-# Making `redact` Available Globally on Windows
-
-The project uses a dedicated Python virtual environment to keep Presidio,
-spaCy, OCR, and the other dependencies isolated. You do not need to activate
-the virtual environment every time you use `redact`.
-
-A small Windows command wrapper exposes the tool to Command Prompt,
-PowerShell, Windows Terminal, and IDE terminals:
-
-```powershell
-redact <input-file>
-```
-
-For example:
-
-```powershell
+```bash
 redact screenshot.png
-redact application.log
-redact config.yaml
-redact .env
 ```
 
-## 1. Create a directory for user commands
-
-```powershell
-New-Item -ItemType Directory -Force "$HOME\bin"
-```
-
-This normally creates:
+produces:
 
 ```text
-C:\Users\<username>\bin
+screenshot.redacted.png
 ```
 
-## 2. Create the `redact.cmd` wrapper
+Supported image formats: `.png`, `.jpg`, `.jpeg`.
 
-Create:
-
-```text
-C:\Users\<username>\bin\redact.cmd
-```
-
-with the following contents:
-
-```bat
-@echo off
-"C:\Users\<username>\tools\local-redactor\.venv\Scripts\python.exe" "C:\Users\<username>\tools\local-redactor\redact.py" %*
-```
-
-Replace `<username>` with your Windows username. If the project is installed
-somewhere else, change both paths accordingly.
-
-The wrapper deliberately invokes Python from the project's `.venv`, so the
-virtual environment does not need to be activated manually.
-
-## 3. Add the command directory to PATH
-
-Run the following in PowerShell:
-
-```powershell
-$bin = "$HOME\bin"
-$currentPath = [Environment]::GetEnvironmentVariable("Path", "User")
-
-if (($currentPath -split ";") -notcontains $bin) {
-    [Environment]::SetEnvironmentVariable(
-        "Path",
-        "$currentPath;$bin",
-        "User"
-    )
-}
-```
-
-Close and reopen PowerShell, Windows Terminal, Command Prompt, or your IDE
-terminal so it receives the updated `PATH`.
-
-## 4. Verify the command
-
-```powershell
-Get-Command redact
-redact --help
-```
-
-`Get-Command` should resolve to:
-
-```text
-C:\Users\<username>\bin\redact.cmd
-```
-
-## 5. Use `redact` from anywhere
-
-You no longer need to navigate to the project directory or activate `.venv`:
-
-```powershell
-cd D:\Pictures\Screenshots
-redact Screenshot.png
-```
-
-The wrapper passes all arguments directly to `redact.py`, so the normal CLI
-options continue to work:
-
-```powershell
-redact application.log --show-detections
-redact application.log -o sanitized.log
-redact application.log --force
-```
-
-The command flow is:
-
-```text
-redact <input-file>
-        |
-        v
-Windows user PATH
-        |
-        v
-C:\Users\<username>\bin\redact.cmd
-        |
-        v
-local-redactor\.venv\Scripts\python.exe
-        |
-        v
-local-redactor\redact.py
-```
-
-This provides a global-style command for the current Windows user while all
-Python dependencies remain isolated inside the project's virtual environment.
-
-> **Note:** The wrapper contains the absolute path to the `local-redactor`
-> installation. If the project directory is moved or renamed, update both
-> paths in `redact.cmd`.
+If Tesseract is not installed or not on your `PATH`, the tool prints a clear
+error with the correct install command for your OS. You can also point it at a
+specific Tesseract binary with the `TESSERACT_CMD` environment variable.
 
 ---
 
@@ -605,11 +523,11 @@ My phone number is +61 412 345 678.
 
 Run:
 
-```powershell
+```bash
 redact example.txt
 ```
 
-Output:
+Output (`example.redacted.txt`):
 
 ```text
 My name is <PERSON>.
@@ -617,23 +535,23 @@ My email address is <EMAIL_ADDRESS>.
 My phone number is <PHONE_NUMBER>.
 ```
 
-The resulting file is:
-
-```text
-example.redacted.txt
-```
-
 ---
 
 # Dependency Management
 
-The project uses two dependency files.
+Dependencies are declared in `pyproject.toml`:
+
+- Runtime dependencies live under `[project].dependencies`.
+- Development/test dependencies live under
+  `[project.optional-dependencies].dev` and are installed with
+  `pip install -e ".[dev]"`.
+
+Two supporting files remain for convenience:
 
 ## `requirements.txt`
 
-Contains the direct dependencies intentionally selected by the project.
-
-Example:
+The direct runtime dependencies, mirroring `pyproject.toml`, for environments
+that prefer a plain requirements file:
 
 ```text
 presidio-analyzer==2.2.364
@@ -641,27 +559,18 @@ presidio-anonymizer==2.2.364
 presidio-image-redactor==0.0.60
 ```
 
-This file should remain relatively small and human-maintained.
-
 ## `requirements-lock.txt`
 
-Captures the complete known-working Python environment, including transitive dependencies.
+Captures the complete known-working Python environment, including transitive
+dependencies. Regenerate it with:
 
-Generate it with:
-
-```powershell
+```bash
 python -m pip freeze > requirements-lock.txt
 ```
 
-Use `requirements.txt` for normal development installations:
+Use it when an exact environment needs to be reproduced:
 
-```powershell
-python -m pip install -r requirements.txt
-```
-
-Use `requirements-lock.txt` when an exact environment needs to be reproduced:
-
-```powershell
+```bash
 python -m pip install -r requirements-lock.txt
 ```
 
@@ -669,37 +578,36 @@ python -m pip install -r requirements-lock.txt
 
 # Development And Tests
 
-Install the development dependencies:
+Install the project with development dependencies:
 
-```powershell
-python -m pip install -r requirements-dev.txt
+```bash
+python -m pip install -e ".[dev]"
 ```
 
 Run the automated tests:
 
-```powershell
+```bash
 python -m pytest
 ```
 
-The tests use synthetic PII and credential-shaped fixtures only.
+The tests use synthetic PII and credential-shaped fixtures only. Image tests use
+fakes/mocks and do not require Tesseract to be installed.
 
 ---
 
 # System Dependencies
 
-Some dependencies cannot be represented in `requirements.txt`.
-
-Currently:
+Some dependencies cannot be represented in `pyproject.toml` and are installed
+per-OS (see [Prerequisites](#prerequisites)):
 
 ```text
 Tesseract OCR 5.x
 ```
 
-Tesseract must be installed separately on the operating system.
+The spaCy language model is also installed separately (same command on all
+operating systems):
 
-The spaCy language model is also installed separately:
-
-```powershell
+```bash
 python -m spacy download en_core_web_lg
 ```
 
@@ -720,8 +628,6 @@ PII and secret detection systems can produce:
 - Unrecognized credential formats
 
 Review highly sensitive output before publishing it.
-
----
 
 ## DevOps Secrets
 
@@ -763,8 +669,6 @@ cloud provider credentials
 
 Custom recognizers cover many of these patterns, but manually inspect infrastructure-related output before sharing it publicly.
 
----
-
 ## Current Limitations
 
 - Files are processed one at a time; directory/batch redaction is not implemented yet.
@@ -775,51 +679,60 @@ Custom recognizers cover many of these patterns, but manually inspect infrastruc
 
 ---
 
-# Image Redaction
+# Legacy Windows wrapper
 
-Image redaction is available for screenshots and other image files.
+Before the project was packaged with a console entry point, Windows users
+exposed a global `redact` command with a small `.cmd` wrapper that called the
+virtual environment's Python directly. This is **no longer necessary** — use
+`pip install .` or `pipx install .` instead, which produce a `redact` command
+on every OS.
 
-Use:
+The wrapper is documented here only for historical reference. If you still want
+a wrapper that invokes the project without activating the virtual environment,
+create `C:\Users\<username>\bin\redact.cmd`:
 
-```powershell
-redact screenshot.png
+```bat
+@echo off
+"C:\path\to\local-redact\.venv\Scripts\python.exe" -m presidio_redactor.cli %*
 ```
 
-producing:
+and add `C:\Users\<username>\bin` to your user `PATH`.
+
+---
+
+# Repository Structure
 
 ```text
-screenshot.redacted.png
-```
-
-The pipeline uses:
-
-```text
-Image
-  |
-  v
-Tesseract OCR
-  |
-  v
-Presidio
-  |
-  v
-Sensitive text coordinates
-  |
-  v
-Opaque pixel replacement
-  |
-  v
-Redacted image
-```
-
-The implementation uses opaque redaction rather than visual blur so that sensitive pixels are actually replaced.
-
-Supported image formats:
-
-```text
-.png
-.jpg
-.jpeg
+local-redact/
+|
++-- .gitignore
++-- README.md
++-- pyproject.toml               # packaging, deps, `redact` entry point
++-- requirements.txt
++-- requirements-lock.txt
++-- requirements-dev.txt
+|
++-- src/
+|   +-- presidio_redactor/
+|       +-- __init__.py
+|       +-- cli.py               # argparse + main(); the `redact` command
+|       +-- text.py              # text redaction pipeline
+|       +-- image.py             # image redaction + Tesseract resolution
+|       +-- recognizers/
+|           +-- __init__.py
+|           +-- devops.py        # custom DevOps/secret recognizers
+|
++-- tests/
+|   +-- fixtures/
+|   +-- test_devops_recognizers.py
+|   +-- test_image_redaction.py
+|   +-- test_text_redaction.py
+|   +-- test_tesseract_resolution.py
+|
++-- user-pii.txt                 # synthetic local example
++-- user-pii.redacted.txt        # synthetic redacted example
+|
++-- .venv/                       # ignored by Git
 ```
 
 ---
@@ -838,57 +751,34 @@ Future development includes:
 - Configurable entity selection
 - Confidence thresholds
 - Windows Explorer "Redact before sharing" integration
-- Native Python CLI packaging
+- Publishing to PyPI
 
 ---
 
-# Repository Structure
+# Development Roadmap
 
-Current structure:
-
-```text
-local-redactor/
-|
-+-- .gitignore
-+-- README.md
-+-- devops_recognizers.py
-+-- requirements.txt
-+-- requirements-lock.txt
-+-- requirements-dev.txt
-+-- redact.py
-+-- user-pii.txt                 # synthetic local example
-+-- user-pii.redacted.txt        # synthetic redacted example
-|
-+-- tests/
-+|   +-- fixtures/
-+|   +-- test_devops_recognizers.py
-+|   +-- test_image_redaction.py
-+|   +-- test_text_redaction.py
-+|
-+-- .venv/                  # ignored by Git
-```
-
-As the project grows, it may evolve toward:
+The recommended implementation order is:
 
 ```text
-presidio-redactor/
-|
-+-- pyproject.toml
-+-- README.md
-+-- requirements.txt
-|
-+-- src/
-|   +-- presidio_redactor/
-|       +-- __init__.py
-|       +-- cli.py
-|       +-- text.py
-|       +-- image.py
-|       +-- recognizers/
-|
-+-- tests/
-|   +-- fixtures/
-|
-+-- .gitignore
+1. Text PII redaction                 DONE
+        |
+2. Global redact command              DONE
+        |
+3. Tesseract installation             DONE
+        |
+4. Image redaction                    DONE
+        |
+5. DevOps secret recognizers          DONE
+        |
+6. Automated synthetic tests          DONE
+        |
+7. Cross-platform support             DONE
+        |
+8. Python CLI packaging               DONE
+        |
+9. Batch redaction
+        |
+10. Windows Explorer integration
 ```
 
 ---
@@ -922,53 +812,7 @@ personal information
 
 Use synthetic test data instead.
 
-A `.gitignore` should include at minimum:
-
-```gitignore
-.venv/
-__pycache__/
-*.pyc
-
-# Generated redacted files
-*.redacted.*
-
-# Environment/secrets
-.env
-.env.*
-*.pem
-*.key
-
-# Local sensitive test files
-munish-pii.txt
-```
-
 Do not rely on `.gitignore` as a security boundary. A file that has already been committed remains in Git history even if it is subsequently added to `.gitignore`.
-
----
-
-# Development Roadmap
-
-The recommended implementation order is:
-
-```text
-1. Text PII redaction                 DONE
-        |
-2. Global redact command              DONE
-        |
-3. Tesseract installation             DONE
-        |
-4. Image redaction                   DONE
-        |
-5. DevOps secret recognizers         DONE
-        |
-6. Automated synthetic tests         DONE
-        |
-7. Batch redaction
-        |
-8. Proper Python CLI packaging
-        |
-9. Windows Explorer integration
-```
 
 ---
 
