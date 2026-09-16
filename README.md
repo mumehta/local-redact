@@ -1,6 +1,10 @@
-# Presidio Redactor
+# Local Redact
+
+[![CI](https://github.com/mumehta/local-redact/actions/workflows/ci.yml/badge.svg)](https://github.com/mumehta/local-redact/actions/workflows/ci.yml)
 
 A local command-line redaction tool that removes personally identifiable information (PII), DevOps secrets, API keys, tokens, credentials, and other sensitive values from text files and images. It is built on top of [Microsoft Presidio](https://github.com/microsoft/presidio).
+
+The Python distribution is named `local-redact`; the installed command is `redact`.
 
 The goal of this project is to provide a simple command such as:
 
@@ -80,7 +84,7 @@ It also supports PNG/JPG/JPEG image redaction using:
 
 DevOps-specific secret detection is implemented with custom recognizers for common infrastructure credentials, API keys, tokens, private keys, and connection strings.
 
-The project ships as an installable Python package (`presidio-redactor`) with a `redact` console entry point.
+The project ships as an installable Python package (`local-redact`) with a `redact` console entry point.
 
 ---
 
@@ -405,11 +409,12 @@ redact screenshot.png
 
 You still need Tesseract and the spaCy model installed as described in
 [Prerequisites](#prerequisites) and [Installation](#installation). When using
-pipx, install the spaCy model into the pipx environment:
+pipx, the spaCy model must be downloaded into the pipx-managed environment for
+`local-redact` (pipx isolates each app, so a model installed elsewhere is not
+visible to it):
 
 ```bash
-pipx runpip presidio-redactor install
-python -m spacy download en_core_web_lg   # into the active/managed environment
+pipx runpip local-redact -- python -m spacy download en_core_web_lg
 ```
 
 ---
