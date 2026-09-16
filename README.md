@@ -12,6 +12,12 @@ which detects personally identifiable information (PII) and creates a sanitized 
 
 The project is designed to run locally so that the original sensitive data does not need to be uploaded to a third-party redaction service.
 
+## Related Posts
+
+- [LinkedIn post about Local Redactor](https://lnkd.in/p/ghje9qJn)
+- [Redact Sensitive Data Locally Before Sharing With AI](https://www.munish-mehta.com/post/redact-sensitive-data-locally-before-sharing-with-ai/)
+- [Before You Paste Logs Into AI, Redact Them Locally](https://medium.com/cyber-threat-diaries/before-you-paste-logs-into-ai-redact-them-locally-9aa56c023b1a)
+
 ---
 
 ## Why This Project Exists
@@ -236,11 +242,9 @@ to your Windows `PATH`.
 ## 1. Clone the repository
 
 ```powershell
-git clone <repository-url>
+git clone https://github.com/mumehta/local-redact.git local-redactor
 cd local-redactor
 ```
-
-Replace `<repository-url>` with the actual Git repository URL.
 
 ---
 
@@ -575,6 +579,11 @@ The current implementation supports text-based formats including:
 
 Files are expected to contain UTF-8 text.
 
+Structured formats such as JSON, YAML, XML, `.env`, and `.ini` are redacted
+as text. The tool preserves useful structure in many common cases, but it
+does not parse and reserialize these formats yet, so review generated output
+before using it as machine-readable configuration.
+
 ---
 
 # Example
@@ -749,6 +758,16 @@ Custom recognizers cover many of these patterns, but manually inspect infrastruc
 
 ---
 
+## Current Limitations
+
+- Files are processed one at a time; directory/batch redaction is not implemented yet.
+- Text files must be UTF-8 encoded.
+- JSON, YAML, XML, `.env`, `.ini`, and similar files are processed as text, not parsed as structured data.
+- OCR accuracy depends on screenshot quality, font size, contrast, and layout.
+- Detection is best-effort and can miss unfamiliar token formats or redact too much context.
+
+---
+
 # Image Redaction
 
 Image redaction is available for screenshots and other image files.
@@ -833,9 +852,6 @@ local-redactor/
 +-- user-pii.txt                 # synthetic local example
 +-- user-pii.redacted.txt        # synthetic redacted example
 |
-+-- docs/
-+|   +-- local-redactor-hugo-article.md
-+|
 +-- tests/
 +|   +-- fixtures/
 +|   +-- test_devops_recognizers.py
