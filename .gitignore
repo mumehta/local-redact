@@ -19,10 +19,6 @@ build/
 dist/
 *.egg-info/
 
-# Generated redaction output
-*.redacted.*
-!user-pii.redacted.txt
-
 # Local inputs which may contain sensitive data
 inputs/
 samples/private/

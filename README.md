@@ -1,16 +1,23 @@
 # Presidio Redactor
 
-A local command-line redaction tool built on top of [Microsoft Presidio](https://github.com/microsoft/presidio).
+A local command-line redaction tool that removes personally identifiable information (PII), DevOps secrets, API keys, tokens, credentials, and other sensitive values from text files and images. It is built on top of [Microsoft Presidio](https://github.com/microsoft/presidio).
 
 The goal of this project is to provide a simple command such as:
 
 ```powershell
 redact sensitive-file.txt
+redact screenshot.png
 ```
 
-which detects personally identifiable information (PII) and creates a sanitized copy that is safer to share in public forums, GitHub issues, support tickets, AI tools, documentation, and other external systems.
+which creates sanitized copies that are safer to share in public forums, GitHub issues, support tickets, AI tools, documentation, and other external systems.
 
 The project is designed to run locally so that the original sensitive data does not need to be uploaded to a third-party redaction service.
+
+## Image Redaction Example
+
+| Before | After |
+| --- | --- |
+| ![Unredacted DevOps secrets screenshot](tests/fixtures/devops-secrets.png) | ![Redacted DevOps secrets screenshot](tests/fixtures/devops-secrets.redacted.png) |
 
 ## Related Posts
 
